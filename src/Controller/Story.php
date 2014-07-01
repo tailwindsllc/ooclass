@@ -1,6 +1,6 @@
 <?php
 
-namespace Upvote;
+namespace Upvote\Controller;
 
 use Framework\Base;
 

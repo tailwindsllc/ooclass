@@ -3,8 +3,7 @@
 session_start();
 
 require_once('../vendor/autoload.php');
-$config = require_once('../config.php');
-require_once '../MasterController.php';
+require_once('../config.php');
 
-$framework = new MasterController($config);
+$framework = $di->newInstance('Framework\Application\Bootstrap');
 echo $framework->execute();
