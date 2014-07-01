@@ -1,15 +1,10 @@
 <?php
 
-class User {
-    
-    public $db;
-    
-    public function __construct($config) {
-        $dbconfig = $config['database'];
-        $dsn = 'mysql:host=' . $dbconfig['host'] . ';dbname=' . $dbconfig['name'];
-        $this->db = new PDO($dsn, $dbconfig['user'], $dbconfig['pass']);
-        $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    }
+namespace Upvote;
+
+use Framework\Base;
+
+class User extends Base\Controller {
     
     public function create() {
         $error = null;
@@ -34,24 +29,22 @@ class User {
             }
             
             if(is_null($error)) {
-                $check_sql = 'SELECT * FROM user WHERE username = ?';
-                $check_stmt = $this->db->prepare($check_sql);
-                $check_stmt->execute(array($_POST['username']));
-                if($check_stmt->rowCount() > 0) {
+                $check_sql = 'SELECT * FROM user WHERE username = :username';
+                $result = $this->adapter->fetchOne(array('username' => $_POST['username']));
+                if(count($result) > 0) {
                     $error = 'Your chosen username already exists. Please choose another.';
                 }
             }
             
             if(is_null($error)) {
                 $params = array(
-                    $_POST['username'],
-                    $_POST['email'],
-                    md5($_POST['username'] . $_POST['password']),
+                    'username' => $_POST['username'],
+                    'email' => $_POST['email'],
+                    'password' => md5($_POST['username'] . $_POST['password']),
                 );
             
-                $sql = 'INSERT INTO user (username, email, password) VALUES (?, ?, ?)';
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute($params);
+                $sql = 'INSERT INTO user (username, email, password) VALUES (:username, :email, :password)';
+                $this->adapter->query($sql, $params);
                 header("Location: /user/login");
                 exit;
             }
@@ -69,7 +62,7 @@ class User {
             </form>
         ';
         
-        require_once 'layout.phtml';
+        require_once '../layout.phtml';
         
     }
     
@@ -86,21 +79,15 @@ class User {
                 $error = 'The password fields were blank or they did not match. Please try again.';       
             }
             else {
-                $sql = 'UPDATE user SET password = ? WHERE username = ?';
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute(array(
-                   md5($_SESSION['username'] . $_POST['password']), // THIS IS NOT SECURE. 
-                   $_SESSION['username'],
-                ));
+                $sql = 'UPDATE user SET password = :password WHERE username = :username';
+                $this->adapter->query($sql, ['password' => md5($_SESSION['username'] . $_POST['password']), 'username' => $_SESSION['username']]);
                 $error = 'Your password was changed.';
             }
         }
-        
-        $dsql = 'SELECT * FROM user WHERE username = ?';
-        $stmt = $this->db->prepare($dsql);
-        $stmt->execute(array($_SESSION['username']));
-        $details = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
+        $dsql = 'SELECT * FROM user WHERE username = :username';
+        $details = $this->adapter->fetchOne($dsql, array('username' => $_SESSION['username']));
+
         $content = '
         ' . $error . '<br />
         
@@ -114,9 +101,9 @@ class User {
             <input type="submit" name="updatepw" value="Create User" />
         </form>';
         
-        require_once 'layout.phtml';
+        require_once '../layout.phtml';
     }
-    
+
     public function login() {
         $error = null;
         // Do the login
@@ -124,11 +111,10 @@ class User {
             $username = $_POST['user'];
             $password = $_POST['pass'];
             $password = md5($username . $password); // THIS IS NOT SECURE. DO NOT USE IN PRODUCTION.
-            $sql = 'SELECT * FROM user WHERE username = ? AND password = ? LIMIT 1';
-            $stmt = $this->db->prepare($sql);
-            $stmt->execute(array($username, $password));
-            if($stmt->rowCount() > 0) {
-               $data = $stmt->fetch(PDO::FETCH_ASSOC); 
+            $sql = 'SELECT * FROM user WHERE username = :username AND password = :password LIMIT 1';
+            $results = $this->adapter->fetchOne($sql, ['username' => $username, 'password' => $password]);
+            if($results) {
+               $data = $results;
                session_regenerate_id();
                $_SESSION['username'] = $data['username'];
                $_SESSION['AUTHENTICATED'] = true;
@@ -149,7 +135,7 @@ class User {
             </form>
         ';
         
-        require_once('layout.phtml');
+        require_once('../layout.phtml');
         
     }
     

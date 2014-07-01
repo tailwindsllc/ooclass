@@ -1,0 +1,18 @@
+{
+    "require": {
+        "php": ">=5.5",
+        "aura/sql" : "1.1.0"
+    },
+
+    "require-dev": {
+        "phpunit/PHPUnit": "3.7.*",
+        "mockery/mockery": "0.9.1"
+    },
+
+    "autoload": {
+        "psr-4": {
+            "Upvote\\": "src",
+            "Framework\\" : "framework"
+        }
+    }
+}

@@ -1,35 +1,28 @@
 <?php
 
-class Story {
-    
-    public function __construct($config) {
-        $dbconfig = $config['database'];
-        $dsn = 'mysql:host=' . $dbconfig['host'] . ';dbname=' . $dbconfig['name'];
-        $this->db = new PDO($dsn, $dbconfig['user'], $dbconfig['pass']);
-        $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    }
-    
+namespace Upvote;
+
+use Framework\Base;
+
+class Story extends Base\Controller {
+
     public function index() {
         if(!isset($_GET['id'])) {
             header("Location: /");
             exit;
         }
         
-        $story_sql = 'SELECT * FROM story WHERE id = ?';
-        $story_stmt = $this->db->prepare($story_sql);
-        $story_stmt->execute(array($_GET['id']));
-        if($story_stmt->rowCount() < 1) {
+        $story_sql = 'SELECT * FROM story WHERE id = :id';
+        $story = $this->adapter->fetchOne($story_sql, ['id' => $_GET['id']]);
+        if(count($story) < 1) {
             header("Location: /");
             exit;
         }
-        
-        $story = $story_stmt->fetch(PDO::FETCH_ASSOC);
-        
-        $comment_sql = 'SELECT * FROM comment WHERE story_id = ?';
-        $comment_stmt = $this->db->prepare($comment_sql);
-        $comment_stmt->execute(array($story['id']));
-        $comment_count = $comment_stmt->rowCount();
-        $comments = $comment_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $comment_sql = 'SELECT * FROM comment WHERE story_id = :id';
+
+        $comments = $this->adapter->fetchAll($comment_sql, ['id' => $story['id']]);
+        $comment_count = count($comments);
 
         $content = '
             <a class="headline" href="' . $story['url'] . '">' . $story['headline'] . '</a><br />
@@ -55,7 +48,7 @@ class Story {
             ';
         }
         
-        require_once 'layout.phtml';
+        require_once '../layout.phtml';
         
     }
     
@@ -71,15 +64,14 @@ class Story {
                !filter_input(INPUT_POST, 'url', FILTER_VALIDATE_URL)) {
                 $error = 'You did not fill in all the fields or the URL did not validate.';       
             } else {
-                $sql = 'INSERT INTO story (headline, url, created_by, created_on) VALUES (?, ?, ?, NOW())';
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute(array(
-                   $_POST['headline'],
-                   $_POST['url'],
-                   $_SESSION['username'],
+                $sql = 'INSERT INTO story (headline, url, created_by, created_on) VALUES (:headline, :url, :created_by, NOW())';
+                $this->adapter->query($sql, array(
+                   'headline' => $_POST['headline'],
+                   'url' => $_POST['url'],
+                   'created_by' => $_SESSION['username'],
                 ));
                 
-                $id = $this->db->lastInsertId();
+                $id = $this->adapter->getPdo()->lastInsertId();
                 header("Location: /story/?id=$id");
                 exit;
             }
@@ -95,7 +87,7 @@ class Story {
             </form>
         ';
         
-        require_once 'layout.phtml';
+        require_once '../layout.phtml';
     }
     
 }

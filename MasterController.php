@@ -1,5 +1,7 @@
 <?php
 
+use Aura\Sql\ConnectionFactory;
+
 class MasterController {
     
     private $config;
@@ -12,8 +14,17 @@ class MasterController {
         $call = $this->_determineControllers();
         $call_class = $call['call'];
         $class = ucfirst(array_shift($call_class));
+        $class = "Upvote\\$class";
         $method = array_shift($call_class);
-        $o = new $class($this->config);
+
+        $config = $this->config;
+        $dbconfig = $config['database'];
+        $dsn = 'mysql:host=' . $dbconfig['host'] . ';dbname=' . $dbconfig['name'];
+
+        $connection_factory = new ConnectionFactory;
+        $connection = $connection_factory->newInstance('mysql', $dsn, $dbconfig['user'], $dbconfig['pass']);
+
+        $o = new $class($connection);
         return $o->$method();
     }
     
